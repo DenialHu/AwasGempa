@@ -76,6 +76,13 @@ public class MainActivity extends AppCompatActivity {
 
     private final List<GeoPoint> affectedAreaPoints = new ArrayList<>();
     private final List<String> affectedAreaNames = new ArrayList<>();
+    private final android.content.BroadcastReceiver gempaReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context context, android.content.Intent intent) {
+            // Jika sinyal diterima, jalankan refresh otomatis
+            startDataloadingFlow();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,12 +155,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         mapView.onResume();
+        androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this)
+                .registerReceiver(gempaReceiver, new android.content.IntentFilter("DATA_GEMPA_BARU"));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mapView.onPause();
+        androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this)
+                .unregisterReceiver(gempaReceiver);
     }
 
     private void startDataloadingFlow() {
