@@ -35,36 +35,29 @@ public class GempaWorker extends Worker {
 
         RequestFuture<JSONObject> future = RequestFuture.newFuture();
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, future, future);
-
         RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
         queue.add(request);
 
         try {
             JSONObject response = future.get(30, TimeUnit.SECONDS);
-
             JSONObject gempaObj = response.getJSONObject("Infogempa").getJSONObject("gempa");
             String dateTime = gempaObj.getString("DateTime");
             String magnitude = gempaObj.getString("Magnitude");
             String wilayah = gempaObj.getString("Wilayah");
 
+            // Cek apakah data ini sudah ada di DB
             AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            if (db.gempaDao().getByDateTime(dateTime) == null) {
-                GempaHistory h = new GempaHistory(
-                        gempaObj.getString("Tanggal"), gempaObj.getString("Jam"), dateTime,
-                        gempaObj.getString("Coordinates"), magnitude,
-                        gempaObj.getString("Kedalaman"), wilayah,
-                        gempaObj.optString("Potensi"), gempaObj.getString("Dirasakan"),
-                        0.0, 0.0, "OTOMATIS", 0.0, System.currentTimeMillis()
-                );
-                db.gempaDao().insert(h);
+            boolean isNew = (db.gempaDao().getByDateTime(dateTime) == null);
 
-                // Kirim sinyal ke MainActivity jika app sedang dibuka
+            if (isNew) {
+                // Kirim sinyal ke MainActivity biar dia yang proses (geocode, radius, dll)
                 Intent intent = new Intent("DATA_GEMPA_BARU");
                 LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
 
-                // MUNCULKAN NOTIFIKASI
+                // Tampilkan notifikasi
                 tampilkanNotifikasi(magnitude, wilayah);
             }
+
             return Result.success();
 
         } catch (Exception e) {
@@ -77,36 +70,27 @@ public class GempaWorker extends Worker {
         String channelId = "GEMPA_CHANNEL";
         NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Wajib membuat Notification Channel untuk Android 8.0 (Oreo) ke atas
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    channelId,
-                    "Peringatan Gempa",
-                    NotificationManager.IMPORTANCE_HIGH
+                    channelId, "Peringatan Gempa", NotificationManager.IMPORTANCE_HIGH
             );
             notificationManager.createNotificationChannel(channel);
         }
 
-        // Intent agar saat notifikasi diklik, aplikasi AwasGempa terbuka
         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                getApplicationContext(),
-                0,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE
+                getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Membangun tampilan notifikasi
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_alert) // Bisa kamu ganti dengan R.drawable.logo_aplikasimu
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setContentTitle("Gempa Baru M " + mag)
                 .setContentText(wilayah)
-                .setPriority(NotificationCompat.PRIORITY_HIGH) // Munculkan pop-up di atas layar (head-up)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
-                .setAutoCancel(true); // Hilang setelah diklik
+                .setAutoCancel(true);
 
-        // Tampilkan notifikasi (ID 1 agar jika ada gempa baru lagi, notifikasi lama tertimpa)
         notificationManager.notify(1, builder.build());
     }
 }

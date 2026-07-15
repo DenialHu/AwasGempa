@@ -39,6 +39,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.button.MaterialButton;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.config.Configuration;
@@ -146,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
         btnRefresh.setOnClickListener(v -> startDataloadingFlow());
         btnHistory.setOnClickListener(v -> showHistorySheet());
         startDataloadingFlow();
+        fetchHistoryGempa();
+        setupBackgroundWork();
     }
     private void setupBackgroundWork() {
         PeriodicWorkRequest gempaWorkRequest =
@@ -226,6 +229,36 @@ public class MainActivity extends AppCompatActivity {
         } catch (SecurityException e) {
             fetchDataBMKG();
         }
+    }
+
+    private void fetchHistoryGempa() {
+        String url = "https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json";
+        JsonObjectRequest req = new JsonObjectRequest(Request.Method.GET, url, null,
+                response -> {
+                    try {
+                        org.json.JSONArray list = response.getJSONObject("Infogempa").getJSONArray("gempa");
+                        new Thread(() -> {
+                            for (int i = 0; i < list.length(); i++) {
+                                try {
+                                    org.json.JSONObject g = list.getJSONObject(i);
+                                    String dt = g.getString("DateTime");
+                                    if (database.gempaDao().getByDateTime(dt) != null) continue;
+
+                                    GempaHistory h = new GempaHistory(
+                                            g.getString("Tanggal"), g.getString("Jam"), dt,
+                                            g.getString("Coordinates"), g.getString("Magnitude"),
+                                            g.getString("Kedalaman"), g.getString("Wilayah"),
+                                            g.optString("Potensi", ""), g.optString("Dirasakan", "-"),
+                                            0.0, 0.0, "RIWAYAT", 0.0, System.currentTimeMillis()
+                                    );
+                                    database.gempaDao().insert(h);
+                                } catch (Exception ignored) {}
+                            }
+                        }).start();
+                    } catch (Exception ignored) {}
+                }, error -> {});
+
+        requestQueue.add(req);
     }
 
     private void fetchDataBMKG() {
@@ -586,14 +619,14 @@ public class MainActivity extends AppCompatActivity {
     // ==================== HISTORY LOGIC ====================
 
     private void saveToHistory(String status, double jarak) {
-        GempaHistory h = new GempaHistory(
-                gempaTanggal, gempaJam, gempaDateTime, gempaCoordinates,
-                gempaMagnitude, gempaKedalaman, gempaWilayah, gempaPotensi,
-                gempaDirasakan, userLat, userLon, status, maxRadius, System.currentTimeMillis());
         new Thread(() -> {
-            if (database.gempaDao().getByDateTime(gempaDateTime) == null) {
-                database.gempaDao().insert(h);
-            }
+            if (database.gempaDao().getByDateTime(gempaDateTime) != null) return;
+
+            GempaHistory h = new GempaHistory(
+                    gempaTanggal, gempaJam, gempaDateTime, gempaCoordinates,
+                    gempaMagnitude, gempaKedalaman, gempaWilayah, gempaPotensi,
+                    gempaDirasakan, userLat, userLon, status, maxRadius, System.currentTimeMillis());
+            database.gempaDao().insert(h);
         }).start();
     }
 
