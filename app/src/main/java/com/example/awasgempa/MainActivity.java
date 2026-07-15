@@ -11,6 +11,13 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
+
+
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -303,6 +310,23 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(jsonObjectRequest);
     }
 
+    private void mintaIzinBackground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            // Cek apakah aplikasi kita masih dibatasi baterainya
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+
+                // Bisa tambahkan AlertDialog di sini untuk menjelaskan ke user
+                // "Mohon izinkan aktivitas latar belakang agar notifikasi gempa tetap berjalan"
+
+                Intent intent = new Intent();
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
+        }
+    }
+    
     // ==================== MAP & MARKERS LOGIC ====================
 
     private void addEpicenterMarker() {
