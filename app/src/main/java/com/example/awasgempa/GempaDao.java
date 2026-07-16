@@ -20,7 +20,7 @@ public interface GempaDao {
     @Delete
     void delete(GempaHistory gempaHistory);
 
-    @Query("SELECT * FROM gempa_history ORDER BY saved_at DESC")
+    @Query("SELECT * FROM gempa_history ORDER BY date_time DESC")
     List<GempaHistory> getAllHistory();
 
     @Query("DELETE FROM gempa_history")
