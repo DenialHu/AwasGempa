@@ -215,4 +215,82 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- RED ALERT OVERLAY (full screen, di atas semua) -->
+    <LinearLayout
+        android:id="@+id/red_alert_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#E0FF0000"
+        android:visibility="gone"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PERINGATAN GEMPA"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.08" />
+
+        <View
+            android:layout_width="80dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="12dp"
+            android:background="#80FFFFFF" />
+
+        <TextView
+            android:id="@+id/tv_alert_magnitude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="--"
+            android:textColor="#FFFFFF"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-black" />
+
+        <TextView
+            android:id="@+id/tv_alert_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="--"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp" />
+
+        <TextView
+            android:id="@+id/tv_alert_depth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="--"
+            android:textColor="#B0FFFFFF"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_dismiss_alarm"
+            android:layout_width="220dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="48dp"
+            android:text="MATIKAN ALARM"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            app:cornerRadius="28dp"
+            app:backgroundTint="#FFFFFF33"
+            app:strokeColor="#FFFFFF"
+            app:strokeWidth="2dp"
+            app:icon="@android:drawable/ic_lock_power_off"
+            app:iconSize="20dp"
+            app:iconGravity="textStart"
+            app:iconTint="#FFFFFF" />
+
+    </LinearLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

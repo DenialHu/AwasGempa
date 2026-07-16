@@ -92,15 +92,19 @@ public class GempaWorker extends Worker {
 
         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.putExtra("FROM_NOTIFICATION", true);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE
+                getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
+        // Full-screen intent buat "force open" pas HP terkunci
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), GEMPA_CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setContentTitle("Gempa Baru M " + mag)
                 .setContentText(wilayah)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setFullScreenIntent(pendingIntent, true)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 

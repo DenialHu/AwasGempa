@@ -7,6 +7,8 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -77,6 +79,12 @@ public class MainActivity extends AppCompatActivity {
     private double gempaLat = 0.0, gempaLon = 0.0;
     private double maxRadius = 0.0;
 
+    private View redAlertOverlay;
+    private MaterialButton btnDismissAlarm;
+    private TextView tvAlertMagnitude, tvAlertLocation, tvAlertDepth;
+    private Vibrator vibrator;
+    private String lastAlertGempaDateTime = "";
+
     private String gempaTanggal = "", gempaJam = "", gempaDateTime = "";
     private String gempaCoordinates = "", gempaMagnitude = "";
     private String gempaKedalaman = "", gempaWilayah = "";
@@ -138,6 +146,15 @@ public class MainActivity extends AppCompatActivity {
         btnZoomIn.setOnClickListener(v -> mapView.getController().zoomIn());
         btnZoomOut.setOnClickListener(v -> mapView.getController().zoomOut());
 
+        redAlertOverlay = findViewById(R.id.red_alert_overlay);
+        btnDismissAlarm = findViewById(R.id.btn_dismiss_alarm);
+        tvAlertMagnitude = findViewById(R.id.tv_alert_magnitude);
+        tvAlertLocation = findViewById(R.id.tv_alert_location);
+        tvAlertDepth = findViewById(R.id.tv_alert_depth);
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+
+        btnDismissAlarm.setOnClickListener(v -> dismissRedAlert());
+
         tvAppTitle.setOnClickListener(v -> startDataloadingFlow());
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -178,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startDataloadingFlow() {
+        dismissRedAlert();
         tvMagnitude.setText("--");
         tvStatusBadge.setText("MENCARI LOKASI...");
         tvStatusBadge.setTextColor(Color.parseColor("#B0B0C0"));
@@ -592,6 +610,10 @@ public class MainActivity extends AppCompatActivity {
         tvStatusBadge.setText(statusText);
         tvStatusBadge.setTextColor(statusColor);
 
+        if (statusText.equals("TERDAMPAK") && maxRadius > 0) {
+            showRedAlert();
+        }
+
         // Jika status TAK DIKETAHUI, buat tombolnya bisa diklik ulang untuk retry
         if (statusText.equals("TAK DIKETAHUI")) {
             tvStatusBadge.setAlpha(1.0f);
@@ -880,6 +902,34 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 fetchDataBMKG();
             }
+        }
+    }
+
+    // ==================== RED ALERT ====================
+
+    private void showRedAlert() {
+        if (gempaDateTime.equals(lastAlertGempaDateTime)) return;
+
+        tvAlertMagnitude.setText("M " + gempaMagnitude + " SR");
+        tvAlertLocation.setText(gempaWilayah);
+        tvAlertDepth.setText("Kedalaman: " + gempaKedalaman);
+        redAlertOverlay.setVisibility(View.VISIBLE);
+
+        if (vibrator != null && vibrator.hasVibrator()) {
+            long[] pattern = {0, 400, 600};
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
+            } else {
+                vibrator.vibrate(pattern, 0);
+            }
+        }
+    }
+
+    private void dismissRedAlert() {
+        lastAlertGempaDateTime = gempaDateTime;
+        redAlertOverlay.setVisibility(View.GONE);
+        if (vibrator != null) {
+            vibrator.cancel();
         }
     }
 }
