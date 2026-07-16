@@ -296,13 +296,30 @@ public class MainActivity extends AppCompatActivity {
 
                                     if (gempaDate != null) {
                                         long diffInMillis = System.currentTimeMillis() - gempaDate.getTime();
-                                        long diffInMinutes = TimeUnit.MILLISECONDS.toMinutes(diffInMillis);
+                                        long totalMinutes = TimeUnit.MILLISECONDS.toMinutes(diffInMillis);
 
-                                        if (diffInMinutes <= 30) {
+                                        if (totalMinutes <= 30) {
                                             tvDataAge.setText("STATUS: AKTUAL (DATA TERBARU)");
                                             tvDataAge.setTextColor(Color.parseColor("#00E676"));
                                         } else {
-                                            tvDataAge.setText("STATUS: DATA LAMA (" + diffInMinutes + " menit lalu)");
+                                            // Kalkulasi manual untuk hari, jam, dan menit
+                                            long days = totalMinutes / (24 * 60); // 1 hari = 1440 menit
+                                            long sisaMenitSetelahHari = totalMinutes - (days * 24 * 60);
+
+                                            long hours = sisaMenitSetelahHari / 60; // 1 jam = 60 menit
+                                            long minutes = sisaMenitSetelahHari - (hours * 60);
+
+                                            // Menyusun teks agar rapi (menyembunyikan yang bernilai 0)
+                                            StringBuilder timeString = new StringBuilder("STATUS: DATA LAMA (");
+                                            if (days > 0) {
+                                                timeString.append(days).append(" hari ");
+                                            }
+                                            if (hours > 0) {
+                                                timeString.append(hours).append(" jam ");
+                                            }
+                                            timeString.append(minutes).append(" menit lalu)");
+
+                                            tvDataAge.setText(timeString.toString());
                                             tvDataAge.setTextColor(Color.parseColor("#FFC107"));
                                         }
                                     }
