@@ -62,14 +62,53 @@ public class GempaWorker extends Worker {
             String dateTime = gempaObj.getString("DateTime");
             String magnitude = gempaObj.getString("Magnitude");
             String wilayah = gempaObj.getString("Wilayah");
+            String coordinates = gempaObj.getString("Coordinates");
 
             AppDatabase db = AppDatabase.getInstance(getApplicationContext());
             boolean isNew = (db.gempaDao().getByDateTime(dateTime) == null);
 
             if (isNew) {
+                // Ambil koordinat User dari SharedPreferences
+                android.content.SharedPreferences prefs = getApplicationContext().getSharedPreferences("AwasGempaPrefs", Context.MODE_PRIVATE);
+                double userLat = prefs.getFloat("USER_LAT", 0f);
+                double userLon = prefs.getFloat("USER_LON", 0f);
+
+                double gempaLat = 0, gempaLon = 0;
+                String[] sep = coordinates.split(",");
+                if (sep.length == 2) {
+                    gempaLat = Double.parseDouble(sep[0]);
+                    gempaLon = Double.parseDouble(sep[1]);
+                }
+
+                double mag = 0;
+                try { mag = Double.parseDouble(magnitude); } catch (Exception ignored) {}
+
+                // Menghitung Jarak
+                double jarakUser = -1;
+                if (userLat != 0 && userLon != 0 && gempaLat != 0) {
+                    jarakUser = hitungJarakHaversine(gempaLat, gempaLon, userLat, userLon);
+                }
+
+                // Asumsi radius (Karena Geocoder di background rentan gagal, kita gunakan estimasi kasar berdasar Magnitude)
+                // Magnitude 5 = ~50km radius bahaya (merah)
+                double radiusMerah = mag * 10.0;
+                double radiusKuning = radiusMerah + (mag * 15.0);
+
+                // PENENTUAN LOGIKA NOTIFIKASI
+                if (jarakUser >= 0 && jarakUser <= radiusMerah) {
+                    // ZONA MERAH: Panggil Layar Alarm Full Screen
+                    tampilkanAlarmBahaya(magnitude, wilayah);
+                } else if (jarakUser > radiusMerah && jarakUser <= radiusKuning) {
+                    // ZONA KUNING: Notifikasi Standar Tinggi
+                    tampilkanNotifikasi("WASPADA: Area Anda Mungkin Terdampak", "Gempa M" + magnitude + " di " + wilayah, NotificationCompat.PRIORITY_HIGH);
+                } else {
+                    // ZONA HIJAU / JAUH: Notifikasi Diam
+                    tampilkanNotifikasi("Info Gempa (Anda Aman)", "Gempa M" + magnitude + " terjadi jauh di " + wilayah, NotificationCompat.PRIORITY_LOW);
+                }
+
+                // Simpan ke DB & Broadcast UI
                 Intent intent = new Intent("DATA_GEMPA_BARU");
                 LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-                tampilkanNotifikasi(magnitude, wilayah);
             }
 
             return Result.success();
@@ -80,6 +119,58 @@ public class GempaWorker extends Worker {
         }
     }
 
+    // Fungsi Pembantu Jarak (Di-copy dari MainActivity)
+    private double hitungJarakHaversine(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Fungsi Notifikasi Standar (Hijau & Kuning)
+    private void tampilkanNotifikasi(String judul, String pesan, int priority) {
+        NotificationManager nm = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), GEMPA_CHANNEL)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(judul)
+                .setContentText(pesan)
+                .setPriority(priority)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true);
+        nm.notify(GEMPA_NOTIF_ID, builder.build());
+    }
+
+    // Fungsi Notifikasi Layar Penuh (Merah)
+    private void tampilkanAlarmBahaya(String mag, String wilayah) {
+        NotificationManager nm = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+
+        Intent fullScreenIntent = new Intent(getApplicationContext(), AlarmActivity.class);
+        fullScreenIntent.putExtra("MAGNITUDE", mag);
+        fullScreenIntent.putExtra("WILAYAH", wilayah);
+        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
+                getApplicationContext(), 0, fullScreenIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), GEMPA_CHANNEL)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("BAHAYA GEMPA!")
+                .setContentText("Anda berada di area terdampak! Layar peringatan diaktifkan.")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setFullScreenIntent(fullScreenPendingIntent, true) // INTENT LAYAR PENUH
+                .setAutoCancel(true);
+
+        nm.notify(GEMPA_NOTIF_ID, builder.build());
+    }
+
     private void buatChannel(Context ctx, String id, String nama, int importance) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -87,23 +178,7 @@ public class GempaWorker extends Worker {
         }
     }
 
-    private void tampilkanNotifikasi(String mag, String wilayah) {
-        NotificationManager nm = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
 
-        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE
-        );
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), GEMPA_CHANNEL)
-                .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                .setContentTitle("Gempa Baru M " + mag)
-                .setContentText(wilayah)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
 
-        nm.notify(GEMPA_NOTIF_ID, builder.build());
-    }
 }

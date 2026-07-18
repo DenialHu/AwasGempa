@@ -149,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
         startDataloadingFlow();
         fetchHistoryGempa();
         setupBackgroundWork();
+        mintaIzinBackground();
     }
     private void setupBackgroundWork() {
         PeriodicWorkRequest gempaWorkRequest =
@@ -219,11 +220,17 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onLocationResult(@NonNull com.google.android.gms.location.LocationResult locationResult) {
                     Location location = locationResult.getLastLocation();
+                    // ... kode sebelumnya di dalam requestNewLocation() ...
                     if (location != null) {
                         userLat = location.getLatitude();
                         userLon = location.getLongitude();
+
+                        // TAMBAHKAN 3 BARIS INI: Simpan lokasi untuk dibaca GempaWorker nanti
+                        android.content.SharedPreferences prefs = getSharedPreferences("AwasGempaPrefs", MODE_PRIVATE);
+                        prefs.edit().putFloat("USER_LAT", (float) userLat).putFloat("USER_LON", (float) userLon).apply();
                     }
                     fetchDataBMKG();
+// ...
                 }
             }, android.os.Looper.getMainLooper());
         } catch (SecurityException e) {
@@ -298,7 +305,7 @@ public class MainActivity extends AppCompatActivity {
                                         long diffInMillis = System.currentTimeMillis() - gempaDate.getTime();
                                         long totalMinutes = TimeUnit.MILLISECONDS.toMinutes(diffInMillis);
 
-                                        if (totalMinutes <= 30) {
+                                        if (totalMinutes <= 15) {
                                             tvDataAge.setText("STATUS: AKTUAL (DATA TERBARU)");
                                             tvDataAge.setTextColor(Color.parseColor("#00E676"));
                                         } else {
