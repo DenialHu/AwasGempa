@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvMagnitude, tvStatusBadge, tvDistance, tvLocation, tvDatetime, tvAppTitle, tvDataAge;
     private MaterialCardView statusCard;
     private MaterialButton btnRefresh, btnHistory, btnZoomIn, btnZoomOut;
+    private MaterialButton btnDemoGreen, btnDemoYellow, btnDemoRed;
     private MapView mapView;
     private FusedLocationProviderClient fusedLocationClient;
     private RequestQueue requestQueue;
@@ -138,6 +139,13 @@ public class MainActivity extends AppCompatActivity {
         btnZoomIn.setOnClickListener(v -> mapView.getController().zoomIn());
         btnZoomOut.setOnClickListener(v -> mapView.getController().zoomOut());
 
+        btnDemoGreen = findViewById(R.id.btn_demo_green);
+        btnDemoYellow = findViewById(R.id.btn_demo_yellow);
+        btnDemoRed = findViewById(R.id.btn_demo_red);
+
+        btnDemoGreen.setOnClickListener(v -> mulaiHitungMundurDemo("HIJAU"));
+        btnDemoYellow.setOnClickListener(v -> mulaiHitungMundurDemo("KUNING"));
+        btnDemoRed.setOnClickListener(v -> mulaiHitungMundurDemo("MERAH"));
         tvAppTitle.setOnClickListener(v -> startDataloadingFlow());
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -178,6 +186,22 @@ public class MainActivity extends AppCompatActivity {
                 .unregisterReceiver(gempaReceiver);
     }
 
+    private void mulaiHitungMundurDemo(String tipe) {
+        androidx.work.Data inputData = new androidx.work.Data.Builder().putString("TIPE", tipe).build();
+
+        // Membuat jadwal tugas 1 kali pakai, yang akan jalan tepat 1 menit setelah diklik
+        androidx.work.OneTimeWorkRequest demoRequest = new androidx.work.OneTimeWorkRequest.Builder(DemoWorker.class)
+                .setInitialDelay(1, TimeUnit.MINUTES)
+                .setInputData(inputData)
+                .build();
+
+        WorkManager.getInstance(this).enqueue(demoRequest);
+
+        // Menampilkan pesan ke dosen/penguji
+        android.widget.Toast.makeText(this,
+                "Mendemonstrasikan Zona " + tipe + "\nSilakan matikan layar (sleep) HP Anda.\nAksi akan berjalan dalam 60 detik.",
+                android.widget.Toast.LENGTH_LONG).show();
+    }
     private void startDataloadingFlow() {
         tvMagnitude.setText("--");
         tvStatusBadge.setText("MENCARI LOKASI...");

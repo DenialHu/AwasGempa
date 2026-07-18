@@ -107,6 +107,42 @@
             app:cornerRadius="12dp"
             app:backgroundTint="#1A1A24"
             app:strokeWidth="0dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_demo_green"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="32dp"
+            android:text="H"
+            android:textColor="#0D0D1A"
+            android:textStyle="bold"
+            android:insetLeft="0dp" android:insetTop="0dp" android:insetRight="0dp" android:insetBottom="0dp"
+            app:cornerRadius="12dp"
+            app:backgroundTint="#00E676" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_demo_yellow"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:text="K"
+            android:textColor="#0D0D1A"
+            android:textStyle="bold"
+            android:insetLeft="0dp" android:insetTop="0dp" android:insetRight="0dp" android:insetBottom="0dp"
+            app:cornerRadius="12dp"
+            app:backgroundTint="#FFC107" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_demo_red"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:text="M"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:insetLeft="0dp" android:insetTop="0dp" android:insetRight="0dp" android:insetBottom="0dp"
+            app:cornerRadius="12dp"
+            app:backgroundTint="#FF1744" />
     </LinearLayout>
 
     <!-- Bottom Status Card -->
